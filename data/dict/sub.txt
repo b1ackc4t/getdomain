@@ -1,0 +1,6 @@
+admin
+pan
+zh
+en
+www
+wenku
