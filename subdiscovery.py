@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+"""
+subdiscovery的主程序
+"""
 import sys
 import argparse
 
