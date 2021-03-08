@@ -1,0 +1,2 @@
+colorama==0.4.4
+win-unicode-console==0.5
