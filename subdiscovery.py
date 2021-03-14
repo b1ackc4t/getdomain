@@ -4,6 +4,9 @@ subdiscovery的主程序
 """
 import sys
 import argparse
+from module.passive import search_engine
+from module.active import cspinfo
+from lib.base import *
 
 
 # Check if we are running this on windows platform
@@ -59,7 +62,7 @@ def cmd_line_parser():
     parser._optionals.title = "OPTIONS"
     parser._positionals.title = "POSITION OPTIONS"
 
-    parser.add_argument("scan-model",  type=str, help="active or passive")
+    parser.add_argument("scan_model", type=str, help="active or passive")
 
     # active part
     active = parser.add_argument_group("active", "active scan configuration options")
@@ -77,8 +80,7 @@ def cmd_line_parser():
 
     if len(sys.argv) == 1:
         sys.argv.append("-h")
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():
@@ -90,9 +92,32 @@ def main():
     """
     brand()
     args = cmd_line_parser()
+    domain = args.domain
+    scan_model = args.scan_model
 
-    print(args)
+    sub_result = set()
 
+    if scan_model == "passive":
+        search_engine_obj = search_engine.SearchEngine(domain)
+
+        set1 = search_engine_obj.get_by_baidu()
+        info(f"Baidu found {len(set1)} subdomains")
+
+        set2 = search_engine_obj.get_by_google()
+        info(f"Google found {len(set2)} subdomains")
+
+        set3 = set()
+        tasks = []
+        loop = asyncio.get_event_loop()
+        for i in ['http://', 'https://']:
+            tasks.append(loop.create_task(cspinfo.main(i + domain)))    # 使用create_task获取返回值
+        loop.run_until_complete(asyncio.wait(tasks))
+        for task in tasks:
+            set3 = set3 | task.result()
+        info(f"CSP found {len(set3)} subdomains")
+
+    elif scan_model == "active":
+        print(22222)
 
 
 if __name__ == '__main__':

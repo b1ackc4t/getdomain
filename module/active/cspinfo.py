@@ -1,62 +1,60 @@
 from requests import get, exceptions
-import click
-from socket import gethostbyname, gaierror
-from sys import version_info, exit
 from tldextract import extract
-
+import asyncio
+import aiohttp
 
 class CSPInfo:
     """
     利用csp头搜集子域名
     """
 
-    def __init__(self, domain):
+    def __init__(self, url):
         """
-        :param domain: 域名
         :param apex_domain: csp头中对应的顶级域名
         :param ip: 域名对应ip地址
         :param count: 域名有几个子域名
         :param status: 域名是否可访问
         :param url: 网址
         """
-        self.domain = domain
         self.apex_domain = ""
         self.ip = ""
         self.count = ""
         self.status = True
-        self.url = ""
+        self.url = url
         self.csp_header = ''
-        self.sub_domains = []
+        self.sub_domains = set()
 
-    def create_url(self):
-        """
-        通过域名创建url， 并设置状态码
-        """
-        url_append = ["http://", "https://"]
-        for ua in url_append:
-            url_test = ua + self.domain
-            r = get(url_test)
-            if r.status_code == 200:
-                self.url = url_test
-        self.status = False
+    # def create_url(self):
+    #     """
+    #     通过域名创建url， 并设置状态码
+    #     """
+    #     url_append = ["http://", "https://"]
+    #     for ua in url_append:
+    #         url_test = ua + self.domain
+    #         r = get(url_test)
+    #         if r.status_code == 200:
+    #             self.url = url_test
+    #     self.status = False
 
-    def get_csp_header(self):
+    async def get_csp_header(self):
         """
         获取url的csp头
         """
         try:
-            r = get(self.url)
+            async with aiohttp.request('HEAD', url=self.url, headers={'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.9 Safari/537.36'}) as r:
+                await r.read()
         except exceptions.RequestException as e:
             print(e)
-            exit(1)
+
         if 'Content-Security-Policy' in r.headers:
             csp_header = r.headers['Content-Security-Policy']
             self.csp_header = csp_header
+            self.get_sub_domains()
         elif 'Content-Security-Policy-report-only' in r.headers:
             csp_header = r.headers['Content-Security-Policy-report-only']
             self.csp_header = csp_header
+            self.get_sub_domains()
         else:
-            exit(1)
             self.status = False
 
     def get_sub_domains(self):
@@ -74,25 +72,29 @@ class CSPInfo:
             else:
                 pass
         # 进行清理
+        # print(csp_sub_domains)
+        domain_ext = extract(self.url)
         for csp_url in csp_sub_domains:
             ext = extract(csp_url)
-            if ext[0] in ['*', '']:
-                self.apex_domain = '.'.join(ext[1:])
-                csp_sub_domains.remove(csp_url)
-            else:
-                csp_url = '.'.join(ext)
-        self.sub_domains = csp_sub_domains
+            if ext[0] not in ['*', ''] and ext[1] == domain_ext[1] and ext[2] == domain_ext[2]:
+                self.sub_domains.add('.'.join(ext))
+        # print(self.sub_domains)
 
 
-def main(domain):
+async def main(url):
+    """
+    供调用的接口
+    :param url: 传入要识别csp的url
+    :return: 获取到的子域名集合
+    """
     # 建立对象
-    csp_info = CSPInfo(domain)
-    # 获取域名url
-    csp_info.create_url()
+    csp_info = CSPInfo(url)
+
     # 获取目标url的csp头
-    csp_info.get_csp_header()
+    await asyncio.ensure_future(csp_info.get_csp_header())
     # 获取子域名
-    csp_info.get_sub_domains()
+    # print(csp_info.sub_domains)
+    return csp_info.sub_domains
 
     # dns解析
     # if resolve:
@@ -103,5 +105,7 @@ def main(domain):
 
 
 if __name__ == '__main__':
-    main("baidu.com")
+    # print(main("http://flipkart.com"))
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main("http://flipkart.com"))  # 处理一个任务
 

@@ -27,6 +27,14 @@ class SearchEngine:
         domain_li = []
         return domain_li
 
+    def get_by_google(self):
+        """
+        通过谷歌搜索子域名
+        :return: 搜索到的子域名列表
+        """
+        domain_li = []
+        return domain_li
+
 
 if __name__ == '__main__':
     search_engine = SearchEngine("xxx.com")
