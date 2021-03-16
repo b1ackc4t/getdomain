@@ -3,7 +3,8 @@ from tldextract import extract
 import asyncio
 import aiohttp
 
-class CSPInfo:
+
+class CSPInfo(object):
     """
     利用csp头搜集子域名
     """

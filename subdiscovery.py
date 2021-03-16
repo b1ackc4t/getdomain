@@ -5,7 +5,7 @@ subdiscovery的主程序
 import sys
 import argparse
 from module.passive import search_engine
-from module.active import cspinfo
+from module.active import csp_info
 from lib.base import *
 
 
@@ -110,7 +110,7 @@ def main():
         tasks = []
         loop = asyncio.get_event_loop()
         for i in ['http://', 'https://']:
-            tasks.append(loop.create_task(cspinfo.main(i + domain)))    # 使用create_task获取返回值
+            tasks.append(loop.create_task(csp_info.main(i + domain)))    # 使用create_task获取返回值
         loop.run_until_complete(asyncio.wait(tasks))
         for task in tasks:
             set3 = set3 | task.result()
