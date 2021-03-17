@@ -98,12 +98,12 @@ def main():
     sub_result = set()
 
     if scan_model == "passive":
-        search_engine_obj = search_engine.SearchEngine(domain)
+        set1 = search_engine.main("hubu.edu.cn")
 
-        set1 = search_engine_obj.get_by_baidu()
+
         info(f"Baidu found {len(set1)} subdomains")
 
-        set2 = search_engine_obj.get_by_google()
+
         info(f"Google found {len(set2)} subdomains")
 
         set3 = set()
@@ -115,6 +115,7 @@ def main():
         for task in tasks:
             set3 = set3 | task.result()
         info(f"CSP found {len(set3)} subdomains")
+
 
     elif scan_model == "active":
         print(22222)
