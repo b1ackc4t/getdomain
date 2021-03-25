@@ -12,13 +12,14 @@ except ImportError:
 
 
 class Certificate():
-    def __init__(self):
+    def __init__(self,url):
         self.domain_list = []
         self.cert = ''
         self.domain = ''
+        self.url = url
 
     def get_san(self):
-        cert = ssl.get_server_certificate((sys.argv[1], 443))
+        cert = ssl.get_server_certificate((self.url, 443))
         x509 = openssl.crypto.load_certificate(openssl.crypto.FILETYPE_PEM, cert)
         for i in range(0, x509.get_extension_count()):
             ext = x509.get_extension(i)
@@ -29,12 +30,12 @@ class Certificate():
         return self.domain_list
 
     def getsrtsh(self,domain_list):
-        for i, arg in enumerate(sys.argv, 1):
-            with urllib.request.urlopen('https://crt.sh/?q=' + urllib.parse.quote('%.' + arg)) as f:
+
+        with urllib.request.urlopen('https://crt.sh/?q=' + urllib.parse.quote('%.' + self.url)) as f:
                 code = f.read().decode('utf-8')
                 for cert, domain in re.findall(
                         '<tr>(?:\s|\S)*?href="\?id=([0-9]+?)"(?:\s|\S)*?<td>([*_a-zA-Z0-9.-]+?\.' + re.escape(
-                                arg) + ')</td>(?:\s|\S)*?</tr>', code, re.IGNORECASE):
+                                self.url) + ')</td>(?:\s|\S)*?</tr>', code, re.IGNORECASE):
                     domain = domain.split('@')[-1]
                     if not domain in domain_list:
                         self.domain_list.append(domain)
@@ -45,7 +46,10 @@ class Certificate():
             for domain in domain_list:
                 print(domain)
 
-if __name__ == '__main__':
-        certificate=Certificate()
+def main(url):
+        certificate=Certificate(url)
         domain_list = certificate.getsrtsh(certificate.get_san())
-        certificate.print_domains(domain_list)
+        return domain_list
+
+if __name__ == '__main__':
+    print(main('hubu.edu.cn'))
