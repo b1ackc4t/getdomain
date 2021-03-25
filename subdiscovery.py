@@ -4,9 +4,11 @@ subdiscovery的主程序
 """
 import sys
 import argparse
-from module.passive import search_engine
+from module.passive import search_engine, certificate
 from module.active import csp_info
 from lib.base import *
+import asyncio
+import json
 
 
 # Check if we are running this on windows platform
@@ -98,27 +100,23 @@ def main():
     sub_result = set()
 
     if scan_model == "passive":
-        set1 = search_engine.main("hubu.edu.cn")
 
+        set1 = search_engine.main(domain)
+        set2 = certificate.main(domain)
 
-        info(f"Baidu found {len(set1)} subdomains")
+        with open('./data/dict/results.json', 'w') as f:
+            json.dump({domain: list(set(set1 + set2))}, f, indent=4, separators=(', ', ': '))
 
-
-        info(f"Google found {len(set2)} subdomains")
-
-        set3 = set()
+    elif scan_model == "active":
+        set1 = set()
         tasks = []
         loop = asyncio.get_event_loop()
         for i in ['http://', 'https://']:
-            tasks.append(loop.create_task(csp_info.main(i + domain)))    # 使用create_task获取返回值
+            tasks.append(loop.create_task(csp_info.main(i + domain)))  # 使用create_task获取返回值
         loop.run_until_complete(asyncio.wait(tasks))
         for task in tasks:
-            set3 = set3 | task.result()
-        info(f"CSP found {len(set3)} subdomains")
-
-
-    elif scan_model == "active":
-        print(22222)
+            set1 = set1 | task.result()
+        info(f"CSP found {len(set1)} subdomains")
 
 
 if __name__ == '__main__':

@@ -1,9 +1,8 @@
 # modules in standard library
 import re
-import time
-import random
 from collections import Counter
 from urllib.parse import urlparse
+from lib.base import *
 
 # external modules
 import requests
@@ -161,10 +160,10 @@ def main(domain):
     """
     search_engine = SearchEngine(domain)
     set1 = search_engine.get_by_baidu()
-
+    info(f"Baidu found {len(set1)} subdomains")
     return set1
 
 
 if __name__ == '__main__':
     # 自己在这个文件里尝试好，能获取子域名就提交上来
-    print(main("hubu.edu.cn"))    # 输出hubu.edu.com的子域名
+    print(main("hubu.edu.cn"))    # 输出hubu.edu.cn的子域名
