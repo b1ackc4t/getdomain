@@ -104,7 +104,7 @@ def main():
         set1 = search_engine.main(domain)
         set2 = certificate.main(domain)
 
-        with open('./data/dict/results.json', 'w') as f:
+        with open('./data/output/results.json', 'w') as f:
             json.dump({domain: list(set(set1 + set2))}, f, indent=4, separators=(', ', ': '))
 
     elif scan_model == "active":
