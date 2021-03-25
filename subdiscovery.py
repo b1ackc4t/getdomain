@@ -104,8 +104,12 @@ def main():
         set1 = search_engine.main(domain)
         set2 = certificate.main(domain)
 
-        with open('./data/output/results.json', 'w') as f:
+        output_path = './data/output/results.json'
+        with open(output_path, 'w') as f:
             json.dump({domain: list(set(set1 + set2))}, f, indent=4, separators=(', ', ': '))
+
+        info(f"All subdomains have been saved in {output_path}")
+        info(f"Finish！！！！！")
 
     elif scan_model == "active":
         set1 = set()
