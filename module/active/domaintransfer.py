@@ -22,7 +22,7 @@ class DomainTransfer():
     def get_subdomain_by_dig(self,dns_servers):
         usage()
         for vulnerable_dns in dns_servers:
-            print('[+] Using @%s' % vulnerable_dns)
+            print('Using @%s' % vulnerable_dns)
             cmd_res = os.popen('dig @%s axfr %s' % (vulnerable_dns, self.url)).read() #获取cmd中的返回值
             if cmd_res.find('XFR size') > 0:#查找有XFR字段的部分
                 print('DNS Domain Transfer vulnerability found:', vulnerable_dns)
@@ -41,4 +41,4 @@ def main(url):
     domaintransfer.dns_zone_tranfer_finder()
 
 if __name__ == "__main__":
-    print(main('baidu.com'))
+    print(main('hubu.edu.cn'))
