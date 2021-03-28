@@ -32,13 +32,13 @@ class DomainTransfer():
 
 
 def usage():
-    print('If you do not have dig')
+    print('if you do not have dig')
     print('Please run  \'一键安装.bat\' in dig.x32 or dig.x64')
 
 def main(url):
     domaintransfer=DomainTransfer(url)
-    print('Try to get %s DNS Server' % url)
+    print('try to get %s DNS Server' % url)
     domaintransfer.dns_zone_tranfer_finder()
 
 if __name__ == "__main__":
-    print(main('hubu.edu.cn'))
+    print(main('baidu.com'))
