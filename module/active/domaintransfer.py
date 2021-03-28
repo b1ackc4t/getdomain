@@ -37,7 +37,7 @@ def usage():
 
 def main(url):
     domaintransfer=DomainTransfer(url)
-    print('try to get %s DNS Server' % url)
+    print('Try to get %s DNS Server' % url)
     domaintransfer.dns_zone_tranfer_finder()
 
 if __name__ == "__main__":
