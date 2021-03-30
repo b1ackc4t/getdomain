@@ -30,10 +30,11 @@ class SearchEngine(object):
         self.domain = domain
         self.session = requests.Session()
         self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.8',
             'Accept-Encoding': 'gzip',
+            'X-Forwarded-For': '127.0.0.1'
         }
 
     def get_by_baidu(self):
@@ -337,99 +338,65 @@ class SearchEngine(object):
 
         return subdomains
 
-
-    def get_by_Bing(self):
+    def get_by_bing(self):
         """
         通过必应搜索子域名
         :return: 搜索到的子域名集合
         """
-        engine_name = "Bing"
-        flag = True
-        page_no = 0
-        prev_links = []
-        retries = 0
         subdomains = []
-        MAX_DOMAINS = 30
-        MAX_PAGES = 500
-        timeout = 25
-        base_url = 'https://www.bing.com/search?q={query}&go=Submit&first={page_no}'
-        querydomain = self.domain
+        MAX_DOMAINS = 50
+        timeout = 2500
+        base_url = 'https://cn.bing.com/search?q={query}&go=Submit&first=0'
+        prev_query = None
+        count = 100  # 最多搜count次
 
-        # 无限循环翻页
-        while flag:
-            query = ""
+        # 无限循环查询（被反爬虫无法翻页，利用googlehacker语法排除已经搜索到的结果来实现过滤搜索结果不断查询下去）
+        while count > 0:
+
             if subdomains:
                 fmt = 'site:{domain} -site:www.{domain} -{found}'
-                found = ' -site'.join(subdomains[:MAX_DOMAINS])
+                found = ' -'.join(['"' + i.strip(self.domain) + '"' for i in subdomains[:MAX_DOMAINS]])
                 query = fmt.format(domain=self.domain, found=found)
             else:
-                query = "site:{domain} -site:www.{domain}".format(domain=self.domain)
-            count = query.count(self.domain)  # finding the number of subdomains found so far
+                query = "site:{domain}%20-site:www.{domain}".format(domain=self.domain)
 
-            # if they we reached the maximum number of subdomains in search query
-            # then we should go over the pages
-            do_flag = None
-            if MAX_DOMAINS == 0:
-                do_flag = False
-            else:
-                do_flag = count >= MAX_DOMAINS
-
-            if do_flag:
-                page_no += 10
-
-            pn_flag = None
-            if MAX_PAGES == 0:
-                pn_flag = False
-            else:
-                pn_flag = page_no >= MAX_PAGES
-
-            if pn_flag:  # maximum pages for Google to avoid getting blocked
+            # 如果这次搜索的关键字和上次一样则结束搜索
+            if query == prev_query:
                 return subdomains
 
             # 向必应发起搜索请求
-            url = base_url.format(query=query, page_no=page_no)
+            url = base_url.format(query=query)
             try:
                 resp = self.session.get(url, headers=self.headers, timeout=timeout)
-            except Exception:
+            except Exception as e:
+                print(e)
                 resp = None
 
             if resp is None:
                 text = 0
-            text = resp.text if hasattr(resp, "text") else resp.content
+            else:
+                text = resp.text if hasattr(resp, "text") else resp.content
 
-            # 实现从网页解析出子域名，等同于extract_domains(DOAMIN)
-            links = list()
-            link_regx = re.compile('<cite>(.*?)<strong>hubu.edu.cn</strong></cite>')
-            link_regx2 = re.compile('<div class="b_title"><h2><a href="(.*?)"')
+            # 实现从网页解析出搜索结果的url
+            link_regx = re.compile('<div class="b_title"><h2><a target="_blank" href="(.*?)"')
             try:
                 links = link_regx.findall(text)
-                links2 = link_regx2.findall(text)
-                links = links + links2
 
+                # 对url进行过滤，拿到里面的域名，放入subdomain中
                 for link in links:
-                    link = re.sub('<(\/)?strong>|<span.*?>|<|>', '', link)
-                    if not link.startswith('http'):
-                        link = "http://" + link + "hubu.edu.cn"
                     subdomain = urlparse(link).netloc
                     if subdomain not in subdomains and subdomain != self.domain:
                         subdomains.append(subdomain.strip())
             except Exception:
                 pass
 
-            links = links
+            # 如果目前结果数量已经超过最大值则结束搜索
+            if len(subdomains) >= MAX_DOMAINS:
+                return subdomains
 
-            # if the previous page hyperlinks was the similar to the current one, then maybe we have reached the last page
-            if links == prev_links:
-                retries += 1
-                page_no += 10
-
-                # make another retry maybe it isn't the last page
-                if retries >= 3:
-                    return subdomains
-
-            prev_links = links
-
-            time.sleep(random.randint(2, 5))
+            count -= 1
+            # 保留查询字符串用于判断是否停止搜索
+            prev_query = query
 
         return subdomains
 
@@ -527,6 +494,15 @@ class SearchEngine(object):
 
         return subdomains
 
+    def get_by_ask(self):
+        """
+        用ask搜索引擎
+        https://www.ask.jp/
+        :return:
+        """
+        subdomains = []
+
+        return subdomains
 
 def main(domain):
     """
@@ -538,7 +514,7 @@ def main(domain):
     #set1 = search_engine.get_by_baidu()
     #set2 = search_engine.get_by_google()
     #set3 = search_engine.get_by_Yahoo()
-    set4 = search_engine.get_by_Bing()
+    set4 = search_engine.get_by_bing()
     #set5 = search_engine.get_by_fofa()
 
 
