@@ -346,7 +346,7 @@ class SearchEngine(object):
         subdomains = []
         MAX_DOMAINS = 50
         timeout = 2500
-        base_url = 'https://cn.bing.com/search?q={query}&go=Submit&first=0'
+        base_url = 'https://cn.bing.com/search?q={query}&go=Submit'
         prev_query = None
         count = 100  # 最多搜count次
 
@@ -358,7 +358,7 @@ class SearchEngine(object):
                 found = ' -'.join(['"' + i.strip(self.domain) + '"' for i in subdomains[:MAX_DOMAINS]])
                 query = fmt.format(domain=self.domain, found=found)
             else:
-                query = "site:{domain}%20-site:www.{domain}".format(domain=self.domain)
+                query = "site:{domain} -site:www.{domain}".format(domain=self.domain)
 
             # 如果这次搜索的关键字和上次一样则结束搜索
             if query == prev_query:
