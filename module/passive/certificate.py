@@ -1,23 +1,15 @@
 import urllib.request
 import urllib.parse
 import re
-from lib.base import *
 
 
 class Certificate():
-    """
-    利用证书透明度查找子域名，公开的证书查询网站
-    """
     def __init__(self,url):
         self.domain_list = []
         self.domain = ''
         self.url = url
 
     def get_crtsh(self):
-        """
-        爬取crt.sh的信息
-        :return: 查询到的子域名
-        """
         with urllib.request.urlopen('https://crt.sh/?q=' + urllib.parse.quote('%.' + self.url)) as f:
                 code = f.read().decode('utf-8')
                 for cert, domain in re.findall(
@@ -33,11 +25,9 @@ class Certificate():
             for domain in domain_list:
                 print(domain)
 
-
 def main(url):
         certificate=Certificate(url)
         domain_list = certificate.get_crtsh()
-        info(f"crt.sh found {len(domain_list)} subdomains")
         return domain_list
 
 if __name__ == '__main__':
