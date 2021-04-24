@@ -51,5 +51,18 @@ def user_agent():
     return random.choice(user_agents)
 
 
+request_headers = {
+    'Connection': 'keep-alive',
+    'Pragma': 'no-cache',
+    'Cache-Control': 'no-cache',
+    'Upgrade-Insecure-Requests': '1',
+    'User-Agent': 'Baiduspider',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+    'DNT': '1',
+    'Referer': 'http://www.baidu.com/',
+    'Accept-Encoding': 'gzip, deflate',
+    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
+}
+
 if __name__ == '__main__':
     print(user_agent())
