@@ -40,7 +40,7 @@ class SentiveFile(object):
             for file in files:
                 r = get(self.url + file)
                 domain = re.findall(res_access, r.text)
-                # ['a', 'a', 'g', 'https://baidu.com', 'http://qq.com', 'qq.com']  #
+                # ['a', 'a', 'g', 'https://sdfsjf', 'http://sdfjhksdfjhkl', 'k3elwjk']  #
                 if len(domain) != 0:
                     for i in range(len(domain)):
                         self.domains.add(domain[i])
