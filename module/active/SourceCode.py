@@ -8,13 +8,6 @@ import re
 import pkg_resources
 from symspellpy.symspellpy import SymSpell
 from tldextract import extract
-# 拼音
-import pypinyin
-
-PUBLIC_SUFFIX_LIST_URLS = (
-    "https://publicsuffix.org/list/public_suffix_list.dat",
-    "https://raw.githubusercontent.com/publicsuffix/list/master/public_suffix_list.dat",
-)
 
 
 class SourceCode(object):
@@ -40,8 +33,8 @@ class SourceCode(object):
         """
 
         self.urls = [url]
-        self.domain = get_domain_and_key(url)[0]
-        self.key = get_domain_and_key(url)[1]
+        self.domain = ".".join(extract(url)[1:])
+        self.key = "".join(extract(url)[1])
         self.keys = get_keys(self.key)
         self.text = ''
         self.sub_count = 0
@@ -49,7 +42,7 @@ class SourceCode(object):
         self.status = True
         self.sub_domains = set()
         self.bro_domains = set()
-        self.suffix_text = extract(str(url)[2])
+        self.suffix = "".join(extract(url)[2])
 
     def get_urls(self):
         try:
@@ -84,13 +77,15 @@ class SourceCode(object):
         """
         # 查找子域名的正则表达式
         # 不奇怪的定义域名 -0-9a-zA-Z_.
-        res_access = r'[0-9-a-zA-Z+&@#%?~_|!,.;]+' + r'[.]' + self.domain
+        res_access = r'[_0-9a-zA-Z-.]+' + r'[.]' + self.domain
         sub_domains = re.findall(res_access, self.text)
         # 当爬取的域名列表不为空则将结果保存在self.sub_domains
         # 将列表转换为set
         self.sub_domains = set(sub_domains)
         # 统计子域名的个数
         self.sub_count = len(self.sub_domains)
+        if '.'.join(extract(self.urls[0])[0:]) in self.sub_domains:
+            self.sub_count += -1
 
     def get_bro_domains(self):
         """
@@ -101,50 +96,34 @@ class SourceCode(object):
         """
         bro_domains = []
         for i in range(1, len(self.keys)):
-            res_access = r'[0-9a-zA-Z\_\.]+' + r'[.]' + self.keys[i] + r'[0-9a-zA-Z\_\.]+'
+            res_access = r'[_0-9a-zA-Z-.]+' + r'[.]' + self.keys[i] + r'[_0-9a-zA-Z-.]+'
             # 将匹配的列表结果加入bro_domains中
             bro_domains.extend(re.findall(res_access, self.text))
         # 将列表转为集合
         self.bro_domains = set(bro_domains)
-        # 统计兄弟域名的个数
-        self.bro_count = len(self.bro_domains)
 
     def get_clean_brodomains(self):
         """
         初清洗 暂时只褪去http://、未包含主域名的域名
         """
         for u in self.bro_domains.copy():
+            # 在后缀表里查不到后缀的删除
             if extract(u)[2] == '':
                 self.bro_domains.remove(u)
+            # 包含子域名的删除
+            if self.domain in u:
+                self.bro_domains.remove(u)
+
+        # 统计兄弟域名的个数
+        self.bro_count = len(self.bro_domains)
 
         print(self.domain)
-        print(self.key)
         print(self.keys)
+        print(self.key)
         print(self.sub_domains)
         print(self.sub_count)
         print(self.bro_domains)
         print(self.bro_count)
-
-
-def get_domain_and_key(url):
-    """
-    将url转换为domain
-    :return: [domain, key]
-    """
-    domain = ''
-    key = ''
-    if 'http://' in url:
-        domain = url.replace('http://', '')
-    if 'https://' in url:
-        domain = url.replace('https://', '')
-    suffix = ['.com', '.com.cn']
-    for item in suffix:
-        if item in domain:
-            temp = domain.replace(item, '')
-            index = temp.rfind('.') + 1
-            key = temp[index:]
-
-    return domain, key
 
 
 def get_keys(key):
@@ -189,8 +168,6 @@ def get_keys(key):
     w_first_str = ''.join(w_first_list)
     # print(w_first_str)
     keys.append(w_first_str)
-
-    print(keys)
 
     return keys
 
