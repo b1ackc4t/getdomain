@@ -43,6 +43,7 @@ class SourceCode(object):
         self.sub_domains = set()
         self.bro_domains = set()
         self.suffix = "".join(extract(url)[2])
+        print(extract(url))
 
     def get_urls(self):
         try:
@@ -188,4 +189,4 @@ def main(url):
 
 
 if __name__ == '__main__':
-    main("https://baidu.com")
+    main("https://dwadf.school.hubu.gov.cn")

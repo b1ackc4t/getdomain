@@ -43,7 +43,7 @@ class CSPInfo(object):
         """
         try:
             async with aiohttp.request('HEAD', url=self.url, headers={'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.9 Safari/537.36'}) as r:
-                await r.read()
+                await r.text()
         except exceptions.RequestException as e:
             print(e)
 

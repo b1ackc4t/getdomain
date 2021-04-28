@@ -64,6 +64,7 @@ class DnsRecord(object):
 
 
         driver.quit()
+
 def main(domain):
     """
     主函数，只需执行它就能get子域名

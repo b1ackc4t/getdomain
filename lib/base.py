@@ -3,6 +3,10 @@
 """
 import time
 import random
+import re
+import requests
+from urllib.parse import unquote
+
 
 G = '\033[92m'  # green
 Y = '\033[93m'  # yellow
@@ -52,17 +56,39 @@ def user_agent():
 
 
 request_headers = {
-    'Connection': 'keep-alive',
+    # 'Connection': 'keep-alive',
     'Pragma': 'no-cache',
     'Cache-Control': 'no-cache',
     'Upgrade-Insecure-Requests': '1',
-    'User-Agent': 'Baiduspider',
+    # 'User-Agent': 'Baiduspider',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
     'DNT': '1',
     'Referer': 'http://www.baidu.com/',
     'Accept-Encoding': 'gzip, deflate',
-    'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8'
+    # 'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.8',
+    'X-Forwarded-For': '127.0.0.1'
 }
+
+
+def match_subdomains(domain, subdomians, resp):
+    '''
+    匹配子域名
+    '''
+    if resp == None:
+        return []
+    resp = unquote(unquote(resp))
+    # print(resp)
+    result = re.findall(r'(?:[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?\.){0,}' \
+                        + domain.replace('.', r'\.'), resp, re.I)
+    for subdoamin in result:
+        subdoamin = subdoamin.split('@')[-1]
+        if not subdoamin in subdomians:
+            subdomians.append(subdoamin)
+    return subdomians
+
+
 
 if __name__ == '__main__':
     print(user_agent())

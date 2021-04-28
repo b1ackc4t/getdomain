@@ -96,31 +96,40 @@ def main():
     args = cmd_line_parser()
     domain = args.domain
     scan_model = args.scan_model
+    loop = asyncio.get_event_loop()     # 获取事件循环
+    tasks = []                          # 所有待处理的任务
+    output_path = './data/output/results.json'    # 输出的json文件存放位置
 
-    sub_result = set()
+    result = []
 
     if scan_model == "passive":
-
-        set1 = search_engine.main(domain)
-        set2 = certificate.main(domain)
-
-        output_path = './data/output/results.json'
-        with open(output_path, 'w') as f:
-            json.dump({domain: list(set(set1 + set2))}, f, indent=4, separators=(', ', ': '))
-
-        info(f"All subdomains have been saved in {output_path}")
-        info(f"Finish！！！！！")
+        se = search_engine.SearchEngine(domain)
+        cer = certificate.Certificate(domain)
+        tasks.append(asyncio.ensure_future(se.get_by_baidu()))  # 将任务加入任务列表 baidu搜索
+        tasks.append(asyncio.ensure_future(se.get_by_bing()))   # bing搜索
+        tasks.append(asyncio.ensure_future(cer.get_crtsh()))    # crt.sh搜索
+        done, pending = loop.run_until_complete(asyncio.wait(tasks))    # 开始事件循环
+        for task in tasks:
+            print(task.result())    # 获得结果
+            result.extend(list(task.result()))
 
     elif scan_model == "active":
         set1 = set()
         tasks = []
-        loop = asyncio.get_event_loop()
+
         for i in ['http://', 'https://']:
             tasks.append(loop.create_task(csp_info.main(i + domain)))  # 使用create_task获取返回值
         loop.run_until_complete(asyncio.wait(tasks))
         for task in tasks:
             set1 = set1 | task.result()
         info(f"CSP found {len(set1)} subdomains")
+
+    # 保存结果
+    with open(output_path, 'w') as f:   # 保存json结果到./data/output/results.json
+        json.dump({domain: list(set(result))}, f, indent=4, separators=(', ', ': '))
+
+    info(f"All subdomains have been saved in {output_path}")
+    info(f"Finish！！！！！")
 
 
 if __name__ == '__main__':

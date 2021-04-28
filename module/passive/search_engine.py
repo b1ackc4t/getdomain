@@ -5,6 +5,10 @@ import time
 import random
 from collections import Counter
 from urllib.parse import urlparse
+from lib.base import match_subdomains
+import aiohttp
+import asyncio
+from lib.base import *
 
 # external modules
 import requests
@@ -29,120 +33,58 @@ class SearchEngine(object):
 
         self.domain = domain
         self.session = requests.Session()
-        self.headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.90 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.8',
-            'Accept-Encoding': 'gzip',
-            'X-Forwarded-For': '127.0.0.1'
-        }
+        self.headers = request_headers
 
-    def get_by_baidu(self):
+    async def get_by_baidu(self):
         """
-        #通过百度搜索子域名
-        #:return: 搜索到的子域名集合
+        通过百度搜索子域名
+        :return: 搜索到的子域名集合
         """
-        engine_name = "Baidu"
-        flag = True
-        page_no = 0
-        prev_links = []
-        retries = 0
         subdomains = []
-        MAX_DOMAINS = 2
-        MAX_PAGES = 760
-        timeout = 25
-        base_url = 'https://www.baidu.com/s?pn={page_no}&wd={query}&oq={query}'
-        querydomain = self.domain
+        MAX_DOMAINS = 50    # 限制寻找的域名数，节约时间
+        timeout = aiohttp.ClientTimeout(total=3)    # 请求超时时间2s
+        base_url = 'https://www.baidu.com/s?wd={query}&oq={query}'
+        prev_query = None
+        count = 100  # 最多搜count次
 
-        # 无限循环翻页
-        while flag:
-            query = ""
-            if subdomains and querydomain != self.domain:
-                found = ' -site:'.join(querydomain)
-                query = "site:{domain} -site:www.{domain} -site:{found} ".format(domain=self.domain, found=found)
+        # 无限循环查询（被反爬虫无法翻页，利用googlehacker语法排除已经搜索到的结果来实现过滤搜索结果不断查询下去）
+        while count > 0:
+
+            if subdomains:
+                fmt = 'site:{domain} -site:www.{domain} -{found}'
+                found = ' -'.join(['"' + i.strip(self.domain) + '"' for i in subdomains[:MAX_DOMAINS]])
+                query = fmt.format(domain=self.domain, found=found)
             else:
                 query = "site:{domain} -site:www.{domain}".format(domain=self.domain)
-            count = query.count(self.domain)  # finding the number of subdomains found so far
 
-            # if they we reached the maximum number of subdomains in search query
-            # then we should go over the pages
-            do_flag = None
-            if MAX_DOMAINS == 0:
-                do_flag = False
-            else:
-                do_flag = count >= MAX_DOMAINS
-
-            if do_flag:
-                page_no += 10
-
-            pn_flag = None
-            if MAX_PAGES == 0:
-                pn_flag = False
-            else:
-                pn_flag = page_no >= MAX_PAGES
-
-            if pn_flag:  # maximum pages for Google to avoid getting blocked
+            # 如果这次搜索的关键字和上次一样则结束搜索
+            if query == prev_query:
+                info(f"baidu found {len(subdomains)} domains")
                 return subdomains
 
             # 向百度发起搜索请求
-            url = base_url.format(query=query, page_no=page_no)
+            url = base_url.format(query=query)
             try:
-                resp = self.session.get(url, headers=self.headers, timeout=timeout)
-            except Exception:
-                resp = None
-            # return self.get_response(resp)
+                async with aiohttp.request("GET", url=url, headers=self.headers, timeout=timeout) as r:
+                    text = await r.text()
+            except Exception as e:
+                info(f"baidu timeout! May need a larger timeout")
+                text = None
 
-            if resp is None:
-                text = 0
-            text = resp.text if hasattr(resp, "text") else resp.content
+            # 实现从网页解析出搜索结果的url
+            subdomains = match_subdomains(self.domain, subdomains, text)
 
+            # 如果目前结果数量已经超过最大值则结束搜索
+            if len(subdomains) >= MAX_DOMAINS:
+                info(f"baidu found {len(subdomains)} domains")
+                return subdomains
 
-            # 实现从网页解析出子域名，等同于extract_domains(DOAMIN)
-            links = list()
-            found_newdomain = False
-            subdomain_list = []
-            link_regx = re.compile('<a.*?class="c-showurl.*?".*?>(.*?)</a>')
-            try:
-                links = link_regx.findall(text)
-                for link in links:
-                    link = re.sub('<.*?>|>|<|&nbsp;', '', link)
-                    if not link.startswith('http'):
-                        link = "http://" + link
-                    subdomain = urlparse(link).netloc
-                    if subdomain.endswith(self.domain):
-                        subdomain_list.append(subdomain)
-                        if subdomain not in subdomains and subdomain != self.domain:
-                            found_newdomain = True
-                            subdomains.append(subdomain.strip())
-            except Exception:
-                pass
-            if not found_newdomain and subdomain_list:
-                count = Counter(subdomains)
-                subdomain1 = max(count, key=count.get)
-                count.pop(subdomain1, "None")
-                subdomain2 = max(count, key=count.get) if count else ''
-                querydomain = (subdomain1, subdomain2)
-                # querydomain = self.findsubs(subdomain_list)
-            links = links
-           # links = self.extract_domains(resp)
+            count -= 1
+            # 保留查询字符串用于判断是否停止搜索
+            prev_query = query
 
-            # if the previous page hyperlinks was the similar to the current one, then maybe we have reached the last page
-            if links == prev_links:
-                retries += 1
-                page_no += 10
-
-
-        # make another retry maybe it isn't the last page
-                if retries >= 3:
-                    return subdomains
-
-            prev_links = links
-            # time.sleep(random.randint(2, 5))
-
-
-
+        info(f"baidu found {len(subdomains)} domains")
         return subdomains
-
 
     def get_by_google(self):
         """
@@ -241,7 +183,6 @@ class SearchEngine(object):
 
         return subdomains
 
-
     def get_by_Yahoo(self):
         """
         通过雅虎搜索子域名
@@ -338,15 +279,16 @@ class SearchEngine(object):
 
         return subdomains
 
-    def get_by_bing(self):
+    async def get_by_bing(self):
         """
         通过必应搜索子域名
         :return: 搜索到的子域名集合
         """
         subdomains = []
         MAX_DOMAINS = 50
-        timeout = 2500
-        base_url = 'https://cn.bing.com/search?q={query}&go=Submit'
+        timeout = aiohttp.ClientTimeout(total=3)
+        base_url = ['https://cn.bing.com/search?q={query}&go=Submit', 'https://www.bing.com/search?q={query}&go=Submit']
+        i = 0
         prev_query = None
         count = 100  # 最多搜count次
 
@@ -362,44 +304,43 @@ class SearchEngine(object):
 
             # 如果这次搜索的关键字和上次一样则结束搜索
             if query == prev_query:
+                info(f"bing found {len(subdomains)} domains")
                 return subdomains
 
             # 向必应发起搜索请求
-            url = base_url.format(query=query)
+            url = base_url[i].format(query=query)
             try:
-                resp = self.session.get(url, headers=self.headers, timeout=timeout)
-            except Exception as e:
-                print(e)
-                resp = None
+                async with aiohttp.request("GET", url=url, headers=self.headers, timeout=timeout) as r:
+                    text = await r.text()
 
-            if resp is None:
-                text = 0
-            else:
-                text = resp.text if hasattr(resp, "text") else resp.content
+            except:
+                text = None
+
+            if text == None:
+                i = (i + 1) % 2
+                url = base_url[i].format(query=query)
+                try:
+                    async with aiohttp.request("GET", url=url, headers=self.headers, timeout=timeout) as r:
+                        text = await r.text()
+                except:
+                    info(f"bing timeout! May need a larger timeout")
+                    text = None
 
             # 实现从网页解析出搜索结果的url
-            link_regx = re.compile('<div class="b_title"><h2><a target="_blank" href="(.*?)"')
-            try:
-                links = link_regx.findall(text)
+            subdomains = match_subdomains(self.domain, subdomains, text)
 
-                # 对url进行过滤，拿到里面的域名，放入subdomain中
-                for link in links:
-                    subdomain = urlparse(link).netloc
-                    if subdomain not in subdomains and subdomain != self.domain:
-                        subdomains.append(subdomain.strip())
-            except Exception:
-                pass
 
             # 如果目前结果数量已经超过最大值则结束搜索
             if len(subdomains) >= MAX_DOMAINS:
+                info(f"bing found {len(subdomains)} domains")
                 return subdomains
 
             count -= 1
             # 保留查询字符串用于判断是否停止搜索
             prev_query = query
 
+        info(f"bing found {len(subdomains)} domains")
         return subdomains
-
 
     def get_by_fofa(self):
         """
@@ -511,16 +452,18 @@ def main(domain):
     :return:
     """
     search_engine = SearchEngine(domain)
-    #set1 = search_engine.get_by_baidu()
-    #set2 = search_engine.get_by_google()
-    #set3 = search_engine.get_by_Yahoo()
-    set4 = search_engine.get_by_bing()
-    #set5 = search_engine.get_by_fofa()
+    # set = search_engine.get_by_baidu()
+    # set = search_engine.get_by_google()
+    set = search_engine.get_by_bing()
 
-
-    return set4
+    # async函数不能直接运行，需要在事件循环里运行
+    task = asyncio.ensure_future(set)   # 异步执行函数
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(task)
+    print(task.result())
+    return
 
 
 if __name__ == '__main__':
     # 自己在这个文件里尝试好，能获取子域名就提交上来
-    print(main("hubu.edu.cn"))    # 输出hubu.edu.com的子域名
+    main("baidu.com")    # 输出hubu.edu.com的子域名

@@ -1,7 +1,7 @@
 from logging import info
 import requests
 import re
-from common import match_subdomains
+from lib.base import match_subdomains
 
 
 

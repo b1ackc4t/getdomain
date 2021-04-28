@@ -1,34 +1,49 @@
 import urllib.request
 import urllib.parse
 import re
+import asyncio
+import aiohttp
+from lib.base import *
 
 
 class Certificate():
-    def __init__(self,url):
+    def __init__(self, domain):
         self.domain_list = []
-        self.domain = ''
-        self.url = url
+        self.domain = domain
+        self.headers = request_headers
 
-    def get_crtsh(self):
-        with urllib.request.urlopen('https://crt.sh/?q=' + urllib.parse.quote('%.' + self.url)) as f:
-                code = f.read().decode('utf-8')
+    async def get_crtsh(self):
+        timeout = aiohttp.ClientTimeout(total=4)
+        try:
+            async with aiohttp.request("GET", url=f"https://crt.sh/?q={urllib.parse.quote('%.' + self.domain)}", headers=self.headers, timeout=timeout) as r:
+                code = await r.text()
                 for cert, domain in re.findall(
                         '<tr>(?:\s|\S)*?href="\?id=([0-9]+?)"(?:\s|\S)*?<td>([*_a-zA-Z0-9.-]+?\.' + re.escape(
-                                self.url) + ')</td>(?:\s|\S)*?</tr>', code, re.IGNORECASE):
+                                self.domain) + ')</td>(?:\s|\S)*?</tr>', code, re.IGNORECASE):
                     domain = domain.split('@')[-1]
-                    if not domain in self.domain_list:
+                    if domain not in self.domain_list:
                         self.domain_list.append(domain)
+        except:
+            info(f"crt.sh timeout! May need a larger timeout")
+            return []
+        info(f"crt.sh found {len(self.domain_list)} domains")
         return self.domain_list
 
-    def print_domains(self,domain_list):
+    def print_domains(self, domain_list):
         if len(domain_list) > 1:
             for domain in domain_list:
                 print(domain)
 
+
 def main(url):
-        certificate=Certificate(url)
-        domain_list = certificate.get_crtsh()
-        return domain_list
+    certificate = Certificate(url)
+    set = certificate.get_crtsh()
+
+    task = asyncio.ensure_future(set)  # 异步执行函数
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(task)
+    print(task.result())
+
 
 if __name__ == '__main__':
-    print(main('hubu.edu.cn'))
+    main('hubu.edu.cn')

@@ -1,6 +1,6 @@
 import requests
 from logging import info
-from common import match_subdomains
+from lib.base import match_subdomains
 
 class ThreatMiner(object):
     def __init__(self,domain):
