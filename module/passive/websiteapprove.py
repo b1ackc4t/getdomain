@@ -8,7 +8,7 @@ class WebsiteApprove(object):
     def __init__(self,domain):
         self.domain = domain
         self.brodomain = []
-        self.apikey = '66a089468ccf446a99366e6dd397d2c5'
+        self.apikey = ''
         self.companyname = self.get_companyname()
 
     def get_companyname(self):
@@ -18,7 +18,7 @@ class WebsiteApprove(object):
             companyname = re.findall("\"CompanyName\":\"(.*?)\",", resp.text)[0]
             #print(companyname)
         except IndexError:
-            print("please input apikey")
+            print("please input apikey or do not query foreign domain")
             exit(0)
         return companyname
 
@@ -38,4 +38,4 @@ def main(domain):
     return websiteapprove.brodomain
 
 if __name__ == '__main__':
-    print(main('sogou.com'))
+    print(main('baidu.com'))
