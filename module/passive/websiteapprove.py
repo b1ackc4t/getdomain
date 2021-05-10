@@ -8,7 +8,7 @@ class WebsiteApprove(object):
     def __init__(self,domain):
         self.domain = domain
         self.brodomain = []
-        self.apikey = ''
+        self.apikey = '66a089468ccf446a99366e6dd397d2c5'
         self.companyname = self.get_companyname()
 
     def get_companyname(self):
@@ -16,7 +16,7 @@ class WebsiteApprove(object):
             url = f'http://apidata.chinaz.com/CallAPI/Domain?key={self.apikey}&domainName={self.domain}'
             resp = requests.get(url)
             companyname = re.findall("\"CompanyName\":\"(.*?)\",", resp.text)[0]
-            # print(companyname)
+            #print(companyname)
         except IndexError:
             print("please input apikey")
             exit(0)
@@ -38,4 +38,4 @@ def main(domain):
     return websiteapprove.brodomain
 
 if __name__ == '__main__':
-    print(main('baidu.com'))
+    print(main('sogou.com'))
