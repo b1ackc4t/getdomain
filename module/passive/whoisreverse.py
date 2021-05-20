@@ -42,10 +42,13 @@ class WhoisReverse(object):
     def getbrodomain_by_chinaz(self):
         url = 'http://apidata.chinaz.com/CallAPI/Whois?key='+self.key+'&domainName='+self.domain
         resp = requests.get(url).text
-        registrar = re.findall('\"Registrar\":\" (.*?)\"', resp)
-        phone = re.findall('\"Phone\":\"(.*?)\"', resp)
+
+        registrar = re.findall('\"Registrar\":\" (.*?)\"', resp)#注册人
+        phone = re.findall('\"Phone\":\"(.*?)\"', resp)#注册电话
+        #注册邮箱
         email = re.findall('\"Email\":\"(.*?)\"', resp)
-        if registrar != 0:
+
+        if len(registrar) != 0:
             f = open(os.getcwd() + r'\sub-discovery\Acc.txt', encoding='utf-8').read().strip()#域名商合集
 
             if f.find(registrar[0]) >= 0:  #如果在文件中找到，说明是注册商管理，就无法通过whois反查
@@ -55,19 +58,26 @@ class WhoisReverse(object):
             registrar_url = 'http://apidata.chinaz.com/CallAPI/WhoisReverse?key=' + self.key + '&queryData=' + registrar[0] + '&queryType=Registrant'
             resp = requests.get(registrar_url).text
             self.brodomain += re.findall('\"Host\":\"(.*?)\"', resp)
+        else:
+            print("please input apikey")
+            exit(0)
 
-        if email != 0:
+        if len(email) != 0:
             email_url = 'http://apidata.chinaz.com/CallAPI/WhoisReverse?key=' + self.key + '&queryData=' + email[0] + '&queryType=Email'
             resp = requests.get(email_url).text
             self.brodomain += re.findall('\"Host\":\"(.*?)\"', resp)
+        else:
+            print("please input apikey")
+            exit(0)
 
-        if phone != 0 :
+        if len(phone) != 0 :
             phone_url = 'http://apidata.chinaz.com/CallAPI/WhoisReverse?key=' + self.key + '&queryData=' + phone[0] + '&queryType=Phone'
             resp = requests.get(phone_url).text
             self.brodomain += re.findall('\"Host\":\"(.*?)\"', resp)
+        else:
+            print("please input apikey")
+            exit(0)
 
-
-            registrar_url = 'http://apidata.chinaz.com/CallAPI/WhoisReverse?key=' + self.key + '&queryData=' + registrar[0] + '&queryType=Registrant'
 
 
 
@@ -79,5 +89,5 @@ def main(domain):
     return whoisreverse.brodomain
 
 if __name__ == '__main__':
-    print(main('baidu.com'))
+    print(main('aliyun.com'))
 
