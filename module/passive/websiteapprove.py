@@ -38,4 +38,4 @@ def main(domain):
     return websiteapprove.brodomain
 
 if __name__ == '__main__':
-    print(main('baidu.com'))
+    print(main('oppo.com'))
