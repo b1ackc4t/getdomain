@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-subdiscovery的主程序
+getdomain的主程序
 """
 import sys
 import argparse
@@ -87,9 +87,9 @@ def cmd_line_parser():
 
 def main():
     """
-    main function of subDiscovery
+    main function of getdomain
 
-    python subdiscovery.py example.com -d word.txt
+    python getdomain.py example.com -d word.txt
     :return:
     """
     brand()
@@ -110,7 +110,7 @@ def main():
         tasks.append(asyncio.ensure_future(cer.get_crtsh()))    # crt.sh搜索
         done, pending = loop.run_until_complete(asyncio.wait(tasks))    # 开始事件循环
         for task in tasks:
-            print(task.result())    # 获得结果
+            # print(task.result())    # 获得结果
             result.extend(list(task.result()))
 
     elif scan_model == "active":
@@ -122,13 +122,13 @@ def main():
         loop.run_until_complete(asyncio.wait(tasks))
         for task in tasks:
             set1 = set1 | task.result()
-        info(f"CSP found {len(set1)} subdomains")
+        info(f"CSP found {len(set1)} domains")
 
     # 保存结果
     with open(output_path, 'w') as f:   # 保存json结果到./data/output/results.json
         json.dump({domain: list(set(result))}, f, indent=4, separators=(', ', ': '))
 
-    info(f"All subdomains have been saved in {output_path}")
+    info(f"All domains have been saved in {output_path}")
     info(f"Finish！！！！！")
 
 

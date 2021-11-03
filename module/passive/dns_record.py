@@ -5,14 +5,12 @@ from urllib.parse import urlparse
 import requests
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys #需要引入 keys 包
-import os,time
+import time
 
 class DnsRecord(object):
-
     def __init__(self, domain):
         """
         初始化基本信息
-        友情提示：这种注释不用手敲的，等你打好参数，写好return，再到函数第一行敲三个引号回车自动生成
         :param target: 要扫描的目标域名
         """
 
@@ -61,8 +59,6 @@ class DnsRecord(object):
             pass
 
         return subdomains
-
-
         driver.quit()
 
 def main(domain):
